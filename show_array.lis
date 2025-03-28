@@ -1,0 +1,137 @@
+     1                                  ;****************************************************************************************************************************
+     2                                  ;Program name: "Random Products".  This program generates 64-bit IEEE random numbers and normalize's it and prints it to the user.
+     3                                  ; Copyright (C) 2025  Carlos Secas .          *
+     4                                  ;                                                                                                                           *
+     5                                  ;This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License  *
+     6                                  ;version 3 as published by the Free Software Foundation.  This program is distributed in the hope that it will be useful,   *
+     7                                  ;but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See   *
+     8                                  ;the GNU General Public License for more details A copy of the GNU General Public License v3 is available here:             *
+     9                                  ;<https://www.gnu.org/licenses/>.                                                                                           *
+    10                                  ;****************************************************************************************************************************
+    11                                  
+    12                                  
+    13                                  
+    14                                  
+    15                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**
+    16                                  ;Author information
+    17                                  ;  Author name: Carlos Secas
+    18                                  ;  Author email: carlosJsecas@csu.fullerton.edu
+    19                                  ;  CWID: 886088269
+    20                                  ;  Class: 240-09 Section 09
+    21                                  ;
+    22                                  ;Program information
+    23                                  ;  Program name: Random Products
+    24                                  ;  Programming languages: Two module in C, five in x86, and one in bash
+    25                                  ;  Date program began: 2025-Mar-21
+    26                                  ;  Date of last update: 2025-Mar-27
+    27                                  ;  Files in this program: main.c, sort.c, executive.asm, fill_random_array.asm, isnan.asm, normalize_array.asm, show_array.asm, r.sh
+    28                                  ;  Testing: Alpha testing completed.  All functions are correct.
+    29                                  ;  Status: Ready for release to customers
+    30                                  ;
+    31                                  ;Purpose
+    32                                  ;  This program generates 64-bit IEEE random numbers and normalize's it and prints it to the user.
+    33                                  ;
+    34                                  ;Devlopment
+    35                                  ;  This assembly code was developed using NASM in a Linux-based enviorment within Github Codespaces,
+    36                                  ;  accessed remotely from a Windows 10 system.  
+    37                                  ;
+    38                                  ;This file:
+    39                                  ;  File name: show_array.asm
+    40                                  ;  Language: X86-64
+    41                                  ;  Max page width: 124 columns
+    42                                  ;  Assemble (standard): nasm -f elf64 -l show_array.lis -o show_array.o show_array.asm
+    43                                  ;  Assemble (debug): nasm -f elf64 -gdwarf -l show_array.lis -o show_array.o show_array.asm
+    44                                  ;  Optimal print specification: Landscape, 7 points, monospace, 8½x11 paper
+    45                                  ;  Prototype of this function: extern double show_array();
+    46                                  ; 
+    47                                  ;
+    48                                  ;
+    49                                  ;
+    50                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**
+    51                                  
+    52                                  ;declarations
+    53                                  
+    54                                  global show_array
+    55                                  
+    56                                  extern printf
+    57                                  
+    58                                  
+    59                                  segment .data ;intialized data here
+    60 00000000 3078253031366C5820-     output_format db "0x%016lX    %-18.13e", 10, 0  ;Format for hexadecimal and scientific decimal display
+    60 00000009 202020252D31382E31-
+    60 00000012 33650A00           
+    61                                  
+    62                                  segment .bss ;Declare pointers to un-intialized space here
+    63                                  ;empty
+    64                                  
+    65                                  segment .text
+    66                                  
+    67                                  show_array:
+    68                                  
+    69                                  ;backup GPRs
+    70 00000000 55                      push rbp
+    71 00000001 4889E5                  mov rbp, rsp
+    72 00000004 53                      push rbx
+    73 00000005 51                      push rcx
+    74 00000006 52                      push rdx
+    75 00000007 57                      push rdi
+    76 00000008 56                      push rsi
+    77 00000009 4150                    push r8
+    78 0000000B 4151                    push r9
+    79 0000000D 4152                    push r10
+    80 0000000F 4153                    push r11
+    81 00000011 4154                    push r12
+    82 00000013 4155                    push r13
+    83 00000015 4156                    push r14
+    84 00000017 4157                    push r15
+    85 00000019 9C                      pushf
+    86                                  
+    87                                  
+    88 0000001A 4989FF                  mov r15, rdi ;Store the array pointer (nums_array)
+    89 0000001D 4989F6                  mov r14, rsi ;Store the number of elements 
+    90 00000020 41BD00000000            mov r13, 0 ;Initialize counter to zero
+    91                                  
+    92                                  print_loop:
+    93                                  
+    94                                  ;Check if all numbers have been printed
+    95 00000026 4D39F5                  cmp r13, r14
+    96 00000029 7D2A                    jge end_print_loop ;End the loop if counter >= total elements
+    97                                  
+    98                                  ;Load the current array element into rax
+    99 0000002B 4B8B04EF                mov rax, [r15 + r13 * 8] 
+   100                                  
+   101                                  ;Move the int into xmm0 register
+   102 0000002F 66480F6EC0              movq xmm0, rax
+   103                                  
+   104                                  ;Print the number 
+   105 00000034 48BF-                   mov rdi, output_format
+   105 00000036 [0000000000000000] 
+   106 0000003E 4889C6                  mov rsi, rax 
+   107 00000041 66480F7EC2              movq rdx, xmm0 
+   108 00000046 B801000000              mov rax, 1 
+   109 0000004B E8(00000000)            call printf
+   110                                  
+   111                                  ;Increment counter
+   112 00000050 49FFC5                  inc r13
+   113 00000053 EBD1                    jmp print_loop ;Continue the loop for the next element
+   114                                  
+   115                                  end_print_loop:
+   116                                  
+   117                                  ;Restore the GPRs
+   118 00000055 9D                      popf
+   119 00000056 415F                    pop r15
+   120 00000058 415E                    pop r14
+   121 0000005A 415D                    pop r13
+   122 0000005C 415C                    pop r12
+   123 0000005E 415B                    pop r11
+   124 00000060 415A                    pop r10
+   125 00000062 4159                    pop r9
+   126 00000064 4158                    pop r8
+   127 00000066 5E                      pop rsi
+   128 00000067 5F                      pop rdi
+   129 00000068 5A                      pop rdx
+   130 00000069 59                      pop rcx
+   131 0000006A 5B                      pop rbx
+   132 0000006B 5D                      pop rbp   ;Restore rbp to the base of the activation record of the caller program
+   133 0000006C C3                      ret
+   134                                  ;End of the function show_array ====================================================================

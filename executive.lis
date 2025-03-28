@@ -1,0 +1,378 @@
+     1                                  ;****************************************************************************************************************************
+     2                                  ;Program name: "Random Products".  This program generates 64-bit IEEE random numbers and normalize's it and prints it to the user.
+     3                                  ; Copyright (C) 2025  Carlos Secas .          *
+     4                                  ;                                                                                                                           *
+     5                                  ;This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License  *
+     6                                  ;version 3 as published by the Free Software Foundation.  This program is distributed in the hope that it will be useful,   *
+     7                                  ;but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See   *
+     8                                  ;the GNU General Public License for more details A copy of the GNU General Public License v3 is available here:             *
+     9                                  ;<https://www.gnu.org/licenses/>.                                                                                           *
+    10                                  ;****************************************************************************************************************************
+    11                                  
+    12                                  
+    13                                  
+    14                                  
+    15                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**
+    16                                  ;Author information
+    17                                  ;  Author name: Carlos Secas
+    18                                  ;  Author email: carlosJsecas@csu.fullerton.edu
+    19                                  ;  CWID: 886088269
+    20                                  ;  Class: 240-09 Section 09
+    21                                  ;
+    22                                  ;Program information
+    23                                  ;  Program name: Random Products
+    24                                  ;  Programming languages: Two module in C, five in x86, and one in bash
+    25                                  ;  Date program began: 2025-Mar-21
+    26                                  ;  Date of last update: 2025-Mar-27
+    27                                  ;  Files in this program: main.c, sort.c, executive.asm, fill_random_array.asm, isnan.asm, normalize_array.asm, show_array.asm, r.sh
+    28                                  ;  Testing: Alpha testing completed.  All functions are correct.
+    29                                  ;  Status: Ready for release to customers
+    30                                  ;
+    31                                  ;Purpose
+    32                                  ;  This program generates 64-bit IEEE random numbers and normalize's it and prints it to the user.
+    33                                  ;
+    34                                  ;Devlopment
+    35                                  ;  This assembly code was developed using NASM in a Linux-based enviorment within Github Codespaces,
+    36                                  ;  accessed remotely from a Windows 10 system.  
+    37                                  ;
+    38                                  ;This file:
+    39                                  ;  File name: executive.asm
+    40                                  ;  Language: X86-64
+    41                                  ;  Max page width: 124 columns
+    42                                  ;  Assemble (standard): nasm -f elf64 -l executive.lis -o executive.o executive.asm
+    43                                  ;  Assemble (debug): nasm -f elf64 -gdwarf -l executive.lis -o executive.o executive.asm
+    44                                  ;  Optimal print specification: Landscape, 7 points, monospace, 8½x11 paper
+    45                                  ;  Prototype of this function: extern double executive();
+    46                                  ; 
+    47                                  ;
+    48                                  ;
+    49                                  ;
+    50                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**
+    51                                  
+    52                                  ;declarations
+    53                                  
+    54                                  global executive
+    55                                  
+    56                                  extern fill_random_array
+    57                                  
+    58                                  extern isnan
+    59                                  
+    60                                  extern sort
+    61                                  
+    62                                  extern show_array
+    63                                  
+    64                                  extern normalize_array
+    65                                  
+    66                                  extern printf
+    67                                  
+    68                                  extern scanf
+    69                                  
+    70                                  extern fgets
+    71                                  
+    72                                  extern stdin
+    73                                  
+    74                                  extern strlen
+    75                                  
+    76                                  extern atoi
+    77                                  
+    78                                  
+    79                                  segment .data ;intialized data here
+    80                                  
+    81 00000000 0A506C656173652065-     user_name_msg db 10, "Please enter your name: ", 10,0
+    81 00000009 6E74657220796F7572-
+    81 00000012 206E616D653A200A00 
+    82 0000001B 0A504C656173652065-     user_title_msg db 10, "PLease enter your title (Mr, Ms, Sargent, Chief, Project Leader, etc): ", 10,0
+    82 00000024 6E74657220796F7572-
+    82 0000002D 207469746C6520284D-
+    82 00000036 722C204D732C205361-
+    82 0000003F 7267656E742C204368-
+    82 00000048 6965662C2050726F6A-
+    82 00000051 656374204C65616465-
+    82 0000005A 722C20657463293A20-
+    82 00000063 0A00               
+    83 00000065 0A4E69636520746F20-     greeting_msg db 10, "Nice to meet you %s %s", 10, 10, 0
+    83 0000006E 6D65657420796F7520-
+    83 00000077 25732025730A0A00   
+    84                                  
+    85 0000007F 0A546869732070726F-     intro_msg db 10, "This program will generate 64-bit IEEE float numbers.", 10,0
+    85 00000088 6772616D2077696C6C-
+    85 00000091 2067656E6572617465-
+    85 0000009A 2036342D6269742049-
+    85 000000A3 45454520666C6F6174-
+    85 000000AC 206E756D626572732E-
+    85 000000B5 0A00               
+    86 000000B7 0A486F77206D616E79-     numbers_wanted_msg db 10, "How many numbers do you want. Today's limit is 100 per customer: ",0
+    86 000000C0 206E756D6265727320-
+    86 000000C9 646F20796F75207761-
+    86 000000D2 6E742E20546F646179-
+    86 000000DB 2773206C696D697420-
+    86 000000E4 697320313030207065-
+    86 000000ED 7220637573746F6D65-
+    86 000000F6 723A2000           
+    87 000000FA 0A596F7572206E756D-     numbers_stored_msg db 10, "Your numbers have been stored in an array. Here is that array.", 10, 10,0
+    87 00000103 626572732068617665-
+    87 0000010C 206265656E2073746F-
+    87 00000115 72656420696E20616E-
+    87 0000011E 2061727261792E2048-
+    87 00000127 657265206973207468-
+    87 00000130 61742061727261792E-
+    87 00000139 0A0A00             
+    88 0000013C 0A496E76616C696420-     invalid_input_msg db 10, "Invalid input. PLease enter a number between 1 and 100.", 10,0
+    88 00000145 696E7075742E20504C-
+    88 0000014E 6561736520656E7465-
+    88 00000157 722061206E756D6265-
+    88 00000160 72206265747765656E-
+    88 00000169 203120616E64203130-
+    88 00000172 302E0A00           
+    89 00000176 0A5468652061727261-     normalize_array_msg db 10, "The array will now be normalized to the range 1.0 to 2.0 Here is the normalized array.", 10, 10,0
+    89 0000017F 792077696C6C206E6F-
+    89 00000188 77206265206E6F726D-
+    89 00000191 616C697A656420746F-
+    89 0000019A 207468652072616E67-
+    89 000001A3 6520312E3020746F20-
+    89 000001AC 322E30204865726520-
+    89 000001B5 697320746865206E6F-
+    89 000001BE 726D616C697A656420-
+    89 000001C7 61727261792E0A0A00 
+    90 000001D0 0A5468652061727261-     sorted_array_msg db 10, "The array will now be sorted.", 10, 10,0
+    90 000001D9 792077696C6C206E6F-
+    90 000001E2 7720626520736F7274-
+    90 000001EB 65642E0A0A00       
+    91 000001F1 0A476F6F6420627965-     goodbye_msg db 10, "Good bye %s. You are welcome any time.", 10,0
+    91 000001FA 2025732E20596F7520-
+    91 00000203 6172652077656C636F-
+    91 0000020C 6D6520616E79207469-
+    91 00000215 6D652E0A00         
+    92                                  
+    93 0000021A 256400                  intformat db "%d", 0
+    94                                  
+    95                                  segment .bss ;Declare pointers to un-intialized space here
+    96                                  
+    97 00000000 <res 00000064>          name resb 100
+    98 00000064 <res 00000064>          title resb 100
+    99 000000C8 <res 00000320>          nums_array resq 100
+   100 000003E8 <res 0000000A>          number_input resb 10
+   101                                  
+   102                                  segment .text
+   103                                  
+   104                                  executive:
+   105                                  
+   106                                  ;backup GPRs
+   107 00000000 55                      push rbp
+   108 00000001 4889E5                  mov rbp, rsp
+   109 00000004 53                      push rbx
+   110 00000005 51                      push rcx
+   111 00000006 52                      push rdx
+   112 00000007 57                      push rdi
+   113 00000008 56                      push rsi
+   114 00000009 4150                    push r8
+   115 0000000B 4151                    push r9
+   116 0000000D 4152                    push r10
+   117 0000000F 4153                    push r11
+   118 00000011 4154                    push r12
+   119 00000013 4155                    push r13
+   120 00000015 4156                    push r14
+   121 00000017 4157                    push r15
+   122 00000019 9C                      pushf
+   123                                  
+   124                                  
+   125                                  ;Print prompt for user name
+   126 0000001A B800000000              mov rax, 0
+   127 0000001F 48BF-                   mov rdi, user_name_msg
+   127 00000021 [0000000000000000] 
+   128 00000029 E8(00000000)            call printf
+   129                                  
+   130                                  ;Read user name using fgets
+   131 0000002E B800000000              mov rax, 0
+   132 00000033 48BF-                   mov rdi, name
+   132 00000035 [0000000000000000] 
+   133 0000003D BE64000000              mov rsi, 100
+   134 00000042 488B1425[00000000]      mov rdx, [stdin]
+   135 0000004A E8(00000000)            call fgets
+   136                                  
+   137                                  ;Remove newline
+   138 0000004F B800000000              mov rax, 0
+   139 00000054 48BF-                   mov rdi, name
+   139 00000056 [0000000000000000] 
+   140 0000005E E8(00000000)            call strlen
+   141 00000063 C680[FFFFFFFF]00        mov [name+rax-1], byte 0
+   142                                  
+   143                                  ;Print prompt for user title
+   144 0000006A B800000000              mov rax, 0
+   145 0000006F 48BF-                   mov rdi, user_title_msg
+   145 00000071 [1B00000000000000] 
+   146 00000079 E8(00000000)            call printf
+   147                                  
+   148                                  ;Read user title
+   149 0000007E B800000000              mov rax, 0
+   150 00000083 48BF-                   mov rdi, title
+   150 00000085 [6400000000000000] 
+   151 0000008D BE64000000              mov rsi, 100
+   152 00000092 488B1425[00000000]      mov rdx, [stdin]
+   153 0000009A E8(00000000)            call fgets
+   154                                  
+   155                                  ;Remove newline character
+   156 0000009F B800000000              mov rax, 0
+   157 000000A4 48BF-                   mov rdi, title
+   157 000000A6 [6400000000000000] 
+   158 000000AE E8(00000000)            call strlen
+   159 000000B3 C680[63000000]00        mov [title+rax-1], byte 0
+   160                                  
+   161                                  ;Print greeting message
+   162 000000BA B800000000              mov rax, 0
+   163 000000BF 48BF-                   mov rdi, greeting_msg
+   163 000000C1 [6500000000000000] 
+   164 000000C9 48BE-                   mov rsi, title
+   164 000000CB [6400000000000000] 
+   165 000000D3 48BA-                   mov rdx, name
+   165 000000D5 [0000000000000000] 
+   166 000000DD E8(00000000)            call printf 
+   167                                  
+   168                                  ;Loop starts to get the size of the array from user
+   169                                  input_loop:
+   170                                  
+   171                                  ;Print intro of program
+   172 000000E2 B800000000              mov rax, 0
+   173 000000E7 48BF-                   mov rdi, intro_msg
+   173 000000E9 [7F00000000000000] 
+   174 000000F1 E8(00000000)            call printf
+   175                                  
+   176                                  ;Print prompt to get user size for the array
+   177 000000F6 B800000000              mov rax, 0
+   178 000000FB 48BF-                   mov rdi, numbers_wanted_msg
+   178 000000FD [B700000000000000] 
+   179 00000105 E8(00000000)            call printf
+   180                                  
+   181                                  ;Read the number input from the user using fgets
+   182 0000010A B800000000              mov rax, 0
+   183 0000010F 48BF-                   mov rdi, number_input ;Use a separate buffer to store the number input
+   183 00000111 [E803000000000000] 
+   184 00000119 BE0A000000              mov rsi, 10      
+   185 0000011E 488B1425[00000000]      mov rdx, [stdin]
+   186 00000126 E8(00000000)            call fgets
+   187                                  
+   188                                  ;Remove the newline character
+   189 0000012B B800000000              mov rax, 0
+   190 00000130 48BF-                   mov rdi, number_input
+   190 00000132 [E803000000000000] 
+   191 0000013A E8(00000000)            call strlen
+   192 0000013F C680[E7030000]00        mov [number_input+rax-1], byte 0
+   193                                  
+   194                                  ;Convert the number of elements to an integer using atoi
+   195 00000146 48BF-                   mov rdi, number_input 
+   195 00000148 [E803000000000000] 
+   196 00000150 E8(00000000)            call atoi
+   197 00000155 4889C3                  mov rbx, rax ; Store the result in rbx
+   198                                  
+   199                                  
+   200                                  ;Validate input range (1 - 100)
+   201 00000158 4883FB01                cmp rbx, 1
+   202 0000015C 7C08                    jl invalid_input ;If the input is less than 1 then tell user to try again
+   203 0000015E 4883FB64                cmp rbx, 100
+   204 00000162 7F02                    jg invalid_input ;If the input is greater than 100 then tell user to try again
+   205                                  
+   206                                  ;If the input is valid then continue
+   207 00000164 EB19                    jmp valid_input
+   208                                  
+   209                                  
+   210                                  ;Handle invalid input
+   211                                  invalid_input:
+   212 00000166 B800000000              mov rax, 0
+   213 0000016B 48BF-                   mov rdi, invalid_input_msg
+   213 0000016D [3C01000000000000] 
+   214 00000175 E8(00000000)            call printf
+   215 0000017A E963FFFFFF              jmp input_loop ; go back and prompt user again
+   216                                  
+   217                                  
+   218                                  valid_input:
+   219                                  
+   220                                  ;Call fill_random_array to generate random numbers 
+   221 0000017F B800000000              mov rax, 0
+   222 00000184 48BF-                   mov rdi, nums_array
+   222 00000186 [C800000000000000] 
+   223 0000018E 4889DE                  mov rsi, rbx
+   224 00000191 E8(00000000)            call fill_random_array
+   225                                  
+   226                                  ;Print a statement to the user that the array of numbers will be stored and printed
+   227 00000196 B800000000              mov rax, 0
+   228 0000019B 48BF-                   mov rdi, numbers_stored_msg
+   228 0000019D [FA00000000000000] 
+   229 000001A5 E8(00000000)            call printf
+   230                                  
+   231                                  ;Print the array using show_array to display the random numbers.
+   232 000001AA B800000000              mov rax, 0
+   233 000001AF 48BF-                   mov rdi, nums_array
+   233 000001B1 [C800000000000000] 
+   234 000001B9 4889DE                  mov rsi, rbx
+   235 000001BC E8(00000000)            call show_array
+   236                                  
+   237                                  ;Now normalize the array
+   238 000001C1 B800000000              mov rax, 0
+   239 000001C6 48BF-                   mov rdi, nums_array
+   239 000001C8 [C800000000000000] 
+   240 000001D0 4889DE                  mov rsi, rbx
+   241 000001D3 E8(00000000)            call normalize_array
+   242                                  
+   243                                  ;Print to the user the array will be normalized
+   244 000001D8 B800000000              mov rax, 0
+   245 000001DD 48BF-                   mov rdi, normalize_array_msg
+   245 000001DF [7601000000000000] 
+   246 000001E7 E8(00000000)            call printf
+   247                                  
+   248                                  ;Print the normalized array
+   249 000001EC B800000000              mov rax, 0
+   250 000001F1 48BF-                   mov rdi, nums_array
+   250 000001F3 [C800000000000000] 
+   251 000001FB 4889DE                  mov rsi, rbx
+   252 000001FE E8(00000000)            call show_array
+   253                                  
+   254                                  ;Call sort to sort the normalized array
+   255 00000203 B800000000              mov rax, 0
+   256 00000208 48BF-                   mov rdi, nums_array
+   256 0000020A [C800000000000000] 
+   257 00000212 4889DE                  mov rsi, rbx
+   258 00000215 E8(00000000)            call sort
+   259                                  
+   260                                  ;Print to the user that the array will be sorted
+   261 0000021A B800000000              mov rax, 0
+   262 0000021F 48BF-                   mov rdi, sorted_array_msg
+   262 00000221 [D001000000000000] 
+   263 00000229 E8(00000000)            call printf
+   264                                  
+   265                                  ;Print the sorted normalized array
+   266 0000022E B800000000              mov rax, 0
+   267 00000233 48BF-                   mov rdi, nums_array
+   267 00000235 [C800000000000000] 
+   268 0000023D 4889DE                  mov rsi, rbx
+   269 00000240 E8(00000000)            call show_array
+   270                                  
+   271                                  ;Print goodbye message to user
+   272 00000245 B800000000              mov rax, 0
+   273 0000024A 48BF-                   mov rdi, goodbye_msg
+   273 0000024C [F101000000000000] 
+   274 00000254 48BE-                   mov rsi, title
+   274 00000256 [6400000000000000] 
+   275 0000025E E8(00000000)            call printf
+   276                                  
+   277                                  ;Return pointer to name buffer
+   278 00000263 48B8-                   mov rax, name
+   278 00000265 [0000000000000000] 
+   279                                  
+   280                                  ;Restore the GPRs
+   281 0000026D 9D                      popf
+   282 0000026E 415F                    pop r15
+   283 00000270 415E                    pop r14
+   284 00000272 415D                    pop r13
+   285 00000274 415C                    pop r12
+   286 00000276 415B                    pop r11
+   287 00000278 415A                    pop r10
+   288 0000027A 4159                    pop r9
+   289 0000027C 4158                    pop r8
+   290 0000027E 5E                      pop rsi
+   291 0000027F 5F                      pop rdi
+   292 00000280 5A                      pop rdx
+   293 00000281 59                      pop rcx
+   294 00000282 5B                      pop rbx
+   295 00000283 5D                      pop rbp   ;Restore rbp to the base of the activation record of the caller program
+   296 00000284 C3                      ret
+   297                                  ;End of the function executive ====================================================================

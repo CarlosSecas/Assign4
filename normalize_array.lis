@@ -1,0 +1,144 @@
+     1                                  ;****************************************************************************************************************************
+     2                                  ;Program name: "Random Products".  This program generates 64-bit IEEE random numbers and normalize's it and prints it to the user.
+     3                                  ; Copyright (C) 2025  Carlos Secas .          *
+     4                                  ;                                                                                                                           *
+     5                                  ;This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License  *
+     6                                  ;version 3 as published by the Free Software Foundation.  This program is distributed in the hope that it will be useful,   *
+     7                                  ;but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See   *
+     8                                  ;the GNU General Public License for more details A copy of the GNU General Public License v3 is available here:             *
+     9                                  ;<https://www.gnu.org/licenses/>.                                                                                           *
+    10                                  ;****************************************************************************************************************************
+    11                                  
+    12                                  
+    13                                  
+    14                                  
+    15                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**
+    16                                  ;Author information
+    17                                  ;  Author name: Carlos Secas
+    18                                  ;  Author email: carlosJsecas@csu.fullerton.edu
+    19                                  ;  CWID: 886088269
+    20                                  ;  Class: 240-09 Section 09
+    21                                  ;
+    22                                  ;Program information
+    23                                  ;  Program name: Random Products
+    24                                  ;  Programming languages: Two module in C, five in x86, and one in bash
+    25                                  ;  Date program began: 2025-Mar-21
+    26                                  ;  Date of last update: 2025-Mar-27
+    27                                  ;  Files in this program: main.c, sort.c, executive.asm, fill_random_array.asm, isnan.asm, normalize_array.asm, show_array.asm, r.sh
+    28                                  ;  Testing: Alpha testing completed.  All functions are correct.
+    29                                  ;  Status: Ready for release to customers
+    30                                  ;
+    31                                  ;Purpose
+    32                                  ;  This program generates 64-bit IEEE random numbers and normalize's it and prints it to the user.
+    33                                  ;
+    34                                  ;Devlopment
+    35                                  ;  This assembly code was developed using NASM in a Linux-based enviorment within Github Codespaces,
+    36                                  ;  accessed remotely from a Windows 10 system.  
+    37                                  ;
+    38                                  ;This file:
+    39                                  ;  File name: normalize_array.asm
+    40                                  ;  Language: X86-64
+    41                                  ;  Max page width: 124 columns
+    42                                  ;  Assemble (standard): nasm -f elf64 -l normalize_array.lis -o normalize_array.o normalize_array.asm
+    43                                  ;  Assemble (debug): nasm -f elf64 -gdwarf -l normalize_array.lis -o normalize_array.o normalize_array.asm
+    44                                  ;  Optimal print specification: Landscape, 7 points, monospace, 8½x11 paper
+    45                                  ;  Prototype of this function: extern double normalize_array();
+    46                                  ; 
+    47                                  ;
+    48                                  ;
+    49                                  ;
+    50                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**
+    51                                  
+    52                                  ;declarations
+    53                                  
+    54                                  global normalize_array
+    55                                  
+    56                                  extern printf
+    57                                  
+    58                                  
+    59                                  segment .data ;intialized data here
+    60 00000000 FFFFFFFFFFFF0F00        mask dq 0x000FFFFFFFFFFFFF ;Mask to clear the exponent bits
+    61 00000008 000000000000F03F        exponent dq 0x3FF0000000000000 ;Exponent to set the range [1.0, 2.0)
+    62                                  
+    63                                  
+    64                                  segment .bss ;Declare pointers to un-intialized space here
+    65                                  ;empty
+    66                                  
+    67                                  
+    68                                  segment .text
+    69                                  
+    70                                  normalize_array:
+    71                                  
+    72                                  
+    73                                  ;backup GPRs
+    74 00000000 55                      push rbp
+    75 00000001 4889E5                  mov rbp, rsp
+    76 00000004 53                      push rbx
+    77 00000005 51                      push rcx
+    78 00000006 52                      push rdx
+    79 00000007 57                      push rdi
+    80 00000008 56                      push rsi
+    81 00000009 4150                    push r8
+    82 0000000B 4151                    push r9
+    83 0000000D 4152                    push r10
+    84 0000000F 4153                    push r11
+    85 00000011 4154                    push r12
+    86 00000013 4155                    push r13
+    87 00000015 4156                    push r14
+    88 00000017 4157                    push r15
+    89 00000019 9C                      pushf
+    90                                  
+    91                                  
+    92 0000001A 4989FF                  mov r15, rdi ;Pointer to the array
+    93 0000001D 4989F6                  mov r14, rsi ;Number of elements in the array
+    94                                  
+    95                                  ;Initialize counter to 0
+    96 00000020 4D31ED                  xor r13, r13              
+    97                                  
+    98                                  normalize_loop:
+    99                                  
+   100                                  ;Check if all values have been processed
+   101 00000023 4D39F5                  cmp r13, r14
+   102 00000026 7D2B                    jge end_normalize
+   103                                  
+   104                                  ;Retrieve the floating-point value from the array
+   105 00000028 F2430F1004EF            movsd xmm0, [r15 + r13 * 8] ; Load number into xmm0
+   106 0000002E 66480F7EC0              movq rax, xmm0 ;Move value from xmm0 to rax 
+   107                                  
+   108                                  ;Clear the exponent bits using masking
+   109 00000033 48230425[00000000]      and rax, qword [mask]
+   110                                  
+   111                                  ;Set the exponent bits to represent (0x3FF)
+   112 0000003B 480B0425[08000000]      or rax, qword [exponent]
+   113                                  
+   114                                  ;Store the modified value back into xmm0
+   115 00000043 66480F6EC0              movq xmm0, rax
+   116                                  
+   117                                  ;Move the normalized value back to the array
+   118 00000048 F2430F1104EF            movsd [r15 + r13 * 8], xmm0  
+   119                                  
+   120                                  ;Increment the counter and continue the loop
+   121 0000004E 49FFC5                  inc r13
+   122 00000051 EBD0                    jmp normalize_loop
+   123                                  
+   124                                  ;End of loop
+   125                                  end_normalize:
+   126                                  
+   127                                  ;Restore the GPRs
+   128 00000053 9D                      popf
+   129 00000054 415F                    pop r15
+   130 00000056 415E                    pop r14
+   131 00000058 415D                    pop r13
+   132 0000005A 415C                    pop r12
+   133 0000005C 415B                    pop r11
+   134 0000005E 415A                    pop r10
+   135 00000060 4159                    pop r9
+   136 00000062 4158                    pop r8
+   137 00000064 5E                      pop rsi
+   138 00000065 5F                      pop rdi
+   139 00000066 5A                      pop rdx
+   140 00000067 59                      pop rcx
+   141 00000068 5B                      pop rbx
+   142 00000069 5D                      pop rbp   ;Restore rbp to the base of the activation record of the caller program
+   143 0000006A C3                      ret
+   144                                  ;End of the function normalize_array ====================================================================

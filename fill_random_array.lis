@@ -1,0 +1,145 @@
+     1                                  ;****************************************************************************************************************************
+     2                                  ;Program name: "Random Products".  This program generates 64-bit IEEE random numbers and normalize's it and prints it to the user.
+     3                                  ; Copyright (C) 2025  Carlos Secas .          *
+     4                                  ;                                                                                                                           *
+     5                                  ;This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License  *
+     6                                  ;version 3 as published by the Free Software Foundation.  This program is distributed in the hope that it will be useful,   *
+     7                                  ;but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See   *
+     8                                  ;the GNU General Public License for more details A copy of the GNU General Public License v3 is available here:             *
+     9                                  ;<https://www.gnu.org/licenses/>.                                                                                           *
+    10                                  ;****************************************************************************************************************************
+    11                                  
+    12                                  
+    13                                  
+    14                                  
+    15                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**
+    16                                  ;Author information
+    17                                  ;  Author name: Carlos Secas
+    18                                  ;  Author email: carlosJsecas@csu.fullerton.edu
+    19                                  ;  CWID: 886088269
+    20                                  ;  Class: 240-09 Section 09
+    21                                  ;
+    22                                  ;Program information
+    23                                  ;  Program name: Random Products
+    24                                  ;  Programming languages: Two module in C, five in x86, and one in bash
+    25                                  ;  Date program began: 2025-Mar-21
+    26                                  ;  Date of last update: 2025-Mar-27
+    27                                  ;  Files in this program: main.c, sort.c, executive.asm, fill_random_array.asm, isnan.asm, normalize_array.asm, show_array.asm, r.sh
+    28                                  ;  Testing: Alpha testing completed.  All functions are correct.
+    29                                  ;  Status: Ready for release to customers
+    30                                  ;
+    31                                  ;Purpose
+    32                                  ;  This program generates 64-bit IEEE random numbers and normalize's it and prints it to the user.
+    33                                  ;
+    34                                  ;Devlopment
+    35                                  ;  This assembly code was developed using NASM in a Linux-based enviorment within Github Codespaces,
+    36                                  ;  accessed remotely from a Windows 10 system.  
+    37                                  ;
+    38                                  ;This file:
+    39                                  ;  File name: fill_random_array.asm
+    40                                  ;  Language: X86-64
+    41                                  ;  Max page width: 124 columns
+    42                                  ;  Assemble (standard): nasm -f elf64 -l fill_random_array.lis -o fill_random_array.o fill_random_array.asm
+    43                                  ;  Assemble (debug): nasm -f elf64 -gdwarf -l fill_random_array.lis -o fill_random_array.o fill_random_array.asm
+    44                                  ;  Optimal print specification: Landscape, 7 points, monospace, 8½x11 paper
+    45                                  ;  Prototype of this function: extern double fill_random_array();
+    46                                  ; 
+    47                                  ;
+    48                                  ;
+    49                                  ;
+    50                                  ;========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1=========2=========3**
+    51                                  
+    52                                  ;declarations
+    53                                  
+    54                                  global fill_random_array
+    55                                  
+    56                                  extern printf
+    57                                  
+    58                                  extern isnan
+    59                                  
+    60                                  
+    61                                  segment .data ;intialized data here
+    62                                  ;empty
+    63                                  
+    64                                  segment .bss ;Declare pointers to un-intialized space here
+    65                                  ;empty
+    66                                  
+    67                                  segment .text
+    68                                  
+    69                                  fill_random_array:
+    70                                  
+    71                                  ;backup GPRs
+    72 00000000 55                      push rbp
+    73 00000001 4889E5                  mov rbp, rsp
+    74 00000004 53                      push rbx
+    75 00000005 51                      push rcx
+    76 00000006 52                      push rdx
+    77 00000007 57                      push rdi
+    78 00000008 56                      push rsi
+    79 00000009 4150                    push r8
+    80 0000000B 4151                    push r9
+    81 0000000D 4152                    push r10
+    82 0000000F 4153                    push r11
+    83 00000011 4154                    push r12
+    84 00000013 4155                    push r13
+    85 00000015 4156                    push r14
+    86 00000017 4157                    push r15
+    87 00000019 9C                      pushf
+    88                                  
+    89                                  
+    90                                  ;Store the adress of the array and size in GPRS
+    91 0000001A 4989FF                  mov r15, rdi ;store array
+    92 0000001D 4989F6                  mov r14, rsi ;number of values
+    93                                  
+    94                                  ;Intialize a counter to 0 
+    95 00000020 41BD00000000            mov r13, 0
+    96                                  
+    97                                  generate_loop:
+    98                                  
+    99                                  
+   100                                  ;Generate a random number and store it in r12
+   101 00000026 B800000000              mov rax, 0
+   102 0000002B 490FC7F4                rdrand r12
+   103                                  
+   104                                  ;Push the random number onto the stack for conversion
+   105 0000002F 4154                    push r12
+   106 00000031 4154                    push r12
+   107 00000033 F2440F103C24            movsd xmm15, [rsp] ;Move the 64-bit number into xmm15 (floating-point register)
+   108 00000039 415C                    pop r12
+   109 0000003B 415C                    pop r12
+   110                                  
+   111                                  ;Check if the generated number is NaN
+   112 0000003D F2410F10C7              movsd xmm0, xmm15
+   113 00000042 E8(00000000)            call isnan
+   114 00000047 4883F800                cmp rax, 0
+   115 0000004B 75D9                    jne generate_loop ;If it's NaN then generate another number
+   116                                  
+   117                                  ;Store the valid number in the array
+   118 0000004D F2470F113CEF            movsd [r15 + r13 * 8], xmm15 ;Store it as floating point #
+   119                                  
+   120                                  ;Increment counter
+   121 00000053 49FFC5                  inc r13
+   122 00000056 4D39F5                  cmp r13, r14
+   123                                  
+   124                                  
+   125 00000059 7CCB                    jl generate_loop
+   126                                  
+   127                                  
+   128                                  ;Restore the GPRs
+   129 0000005B 9D                      popf
+   130 0000005C 415F                    pop r15
+   131 0000005E 415E                    pop r14
+   132 00000060 415D                    pop r13
+   133 00000062 415C                    pop r12
+   134 00000064 415B                    pop r11
+   135 00000066 415A                    pop r10
+   136 00000068 4159                    pop r9
+   137 0000006A 4158                    pop r8
+   138 0000006C 5E                      pop rsi
+   139 0000006D 5F                      pop rdi
+   140 0000006E 5A                      pop rdx
+   141 0000006F 59                      pop rcx
+   142 00000070 5B                      pop rbx
+   143 00000071 5D                      pop rbp   ;Restore rbp to the base of the activation record of the caller program
+   144 00000072 C3                      ret
+   145                                  ;End of the function fill_random_array ====================================================================
